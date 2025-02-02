@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import { MongoClient } from 'mongodb';
+import cloudinary from 'cloudinary';
 import cors from 'cors';
 import multer from 'multer';
 import path from 'path';
@@ -8,13 +9,21 @@ import fs from 'fs';
 
 const app = express();
 
+
+// cloudinary config
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+
 // middleware
 app.use(cors({
     origin: '*',
     allowedHeaders: ['Content-Type']
 }));
 app.use(express.json());
-app.use('/upload', express.static('upload'));
 
 // storage
 const storage = multer.diskStorage({
@@ -40,6 +49,12 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage })
 
+//up to cloudinary
+const uploadToCloudinary = (filePath) => {
+    return cloudinary.v2.uploader.upload(filePath, {
+        folder: 'uploads',  // Folder di Cloudinary untuk menyimpan gambar
+    });
+};
 
 
 // connect to MongoDB
@@ -62,9 +77,9 @@ const connection = async (dbName) => {
 
 
 // get endpoint
-app.get('/api/:dbName/:collectName', async(req, res) => {
-    const {dbName, collectName} = req.params;
-    try {   
+app.get('/api/:dbName/:collectName', async (req, res) => {
+    const { dbName, collectName } = req.params;
+    try {
         const database = await connection(dbName);
         const collectionName = await database.collection(collectName);
         const result = await collectionName.find().toArray();
@@ -74,35 +89,38 @@ app.get('/api/:dbName/:collectName', async(req, res) => {
         console.error(`Error retrieving data from ${dbName}.${collectName}:`, e);
         res.status(500).json({ error: 'Failed to retrieve data.' });
     }
-})
+});
 
 
 // post endpoint
 app.post('/api/:dbName/:collectName', upload.single('image'), async (req, res) => {
-   const { dbName, collectName } = req.params;
-   try {
+    const { dbName, collectName } = req.params;
+    try {
         const database = await connection(dbName);
         const collectionName = await database.collection(collectName);
         let result;
 
         if (req.file) {
+            // Upload gambar ke Cloudinary
+            const uploadResult = await uploadToCloudinary(req.file.path);
+            
+            // Simpan URL gambar dari Cloudinary di MongoDB
             const additionalData = req.body;
             result = await collectionName.insertOne({
-                imagePath: `/upload/${collectName}/${req.file.filename}`,
+                imagePath: uploadResult.secure_url, // Path Cloudinary yang aman
                 additionalData
             });
-        }
-        else {
+        } else {
             const data = req.body;
             result = await collectionName.insertOne(data);
         }
+        
         res.json({ message: 'Data saved successfully.', insertedId: result.insertedId });
-   }
-   catch (e) {
+    } catch (e) {
         console.error(`Error saving data to ${dbName}.${collectName}:`, e);
         res.status(500).json({ error: 'Failed to save data.' });
-   }
-})
+    }
+});
 
 
 // run server
