@@ -58,7 +58,7 @@ const uploadToCloudinary = (filePath) => {
 
 
 // connect to MongoDB
-const client = new MongoClient(process.env.uri);
+const client = new MongoClient(process.env.uri, { ssl: true });
 let db;
 const connection = async (dbName) => {
     if (!db) {
