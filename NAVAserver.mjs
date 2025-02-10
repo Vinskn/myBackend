@@ -3,9 +3,9 @@ import express from 'express';
 import { MongoClient } from 'mongodb';
 import cloudinary from 'cloudinary';
 import cors from 'cors';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+// import multer from 'multer';
+// import path from 'path';
+// import fs from 'fs';
 
 const app = express();
 
@@ -26,28 +26,28 @@ app.use(cors({
 app.use(express.json());
 
 // storage
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const { collectName } = req.params;
-        let folder;
-        if (collectName === 'Project-Part') {
-            folder = 'project';
-        }
-        else if (collectName === 'Certificate-Part') {
-            folder = 'certif';
-        }
+// const storage = multer.diskStorage({
+//     destination: (req, file, cb) => {
+//         const { collectName } = req.params;
+//         let folder;
+//         if (collectName === 'Project-Part') {
+//             folder = 'project';
+//         }
+//         else if (collectName === 'Certificate-Part') {
+//             folder = 'certif';
+//         }
 
-        const folderPath = path.join(__dirname, 'upload', folder);
-        if (!fs.existsSync(folderPath)) {
-            fs.mkdirSync(folderPath, { recursive: true });
-        }
-        cb(null, folder);
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
-});
-const upload = multer({ storage })
+//         const folderPath = path.join(__dirname, 'upload', folder);
+//         if (!fs.existsSync(folderPath)) {
+//             fs.mkdirSync(folderPath, { recursive: true });
+//         }
+//         cb(null, folder);
+//     },
+//     filename: (req, file, cb) => {
+//         cb(null, Date.now() + '-' + file.originalname);
+//     }
+// });
+// const upload = multer({ storage })
 
 //up to cloudinary
 const uploadToCloudinary = (filePath) => {
@@ -59,7 +59,7 @@ const uploadToCloudinary = (filePath) => {
 
 // connect to MongoDB
 const client = new MongoClient(process.env.uri, { 
-    ssl: true,
+    tls: true,
     tlsAllowInvalidCertificates: true 
 });
 let db;
@@ -96,7 +96,7 @@ app.get('/api/:dbName/:collectName', async (req, res) => {
 
 
 // post endpoint
-app.post('/api/:dbName/:collectName', upload.single('image'), async (req, res) => {
+app.post('/api/:dbName/:collectName', async (req, res) => {
     const { dbName, collectName } = req.params;
     try {
         const database = await connection(dbName);
