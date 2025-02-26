@@ -3,9 +3,6 @@ import express from 'express';
 import { MongoClient } from 'mongodb';
 import cloudinary from 'cloudinary';
 import cors from 'cors';
-// import multer from 'multer';
-// import path from 'path';
-// import fs from 'fs';
 
 const app = express();
 
@@ -25,29 +22,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// storage
-// const storage = multer.diskStorage({
-//     destination: (req, file, cb) => {
-//         const { collectName } = req.params;
-//         let folder;
-//         if (collectName === 'Project-Part') {
-//             folder = 'project';
-//         }
-//         else if (collectName === 'Certificate-Part') {
-//             folder = 'certif';
-//         }
-
-//         const folderPath = path.join(__dirname, 'upload', folder);
-//         if (!fs.existsSync(folderPath)) {
-//             fs.mkdirSync(folderPath, { recursive: true });
-//         }
-//         cb(null, folder);
-//     },
-//     filename: (req, file, cb) => {
-//         cb(null, Date.now() + '-' + file.originalname);
-//     }
-// });
-// const upload = multer({ storage })
 
 //up to cloudinary
 const uploadToCloudinary = (filePath) => {
@@ -58,10 +32,7 @@ const uploadToCloudinary = (filePath) => {
 
 
 // connect to MongoDB
-const client = new MongoClient(process.env.uri, { 
-    tls: true,
-    tlsAllowInvalidCertificates: true 
-});
+const client = new MongoClient(process.env.uri);
 let db;
 const connection = async (dbName) => {
     if (!db) {
@@ -87,6 +58,7 @@ app.get('/api/:dbName/:collectName', async (req, res) => {
         const collectionName = await database.collection(collectName);
         const result = await collectionName.find().toArray();
         res.json(result);
+        
     }
     catch (e) {
         console.error(`Error retrieving data from ${dbName}.${collectName}:`, e);
